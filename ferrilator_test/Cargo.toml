@@ -1,0 +1,10 @@
+[package]
+name = "ferrilator_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ferrilator.workspace = true
+
+[build-dependencies]
+ferrilator.workspace = true

@@ -1,0 +1,14 @@
+[package]
+name = "ferrilator_macros"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Procedural macro definition for the ferrilator crate, not intended to be consumed directly."
+homepage = "https://github.com/toshaf/ferrilator"
+repository = "https://github.com/toshaf/ferrilator"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+ferrilator_core.workspace = true

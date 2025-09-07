@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -eu
+
+ROOT=$(readlink -f $(dirname ${BASH_SOURCE[0]})/..)
+
+CMD=${1:-""}
+
+TAG=ferrilator-build
+
+case $CMD in
+  (image)
+    docker build -t $TAG .
+  ;;
+  (shell)
+    docker run --rm -v $(pwd):$(pwd) -w $(pwd) -it $TAG
+  ;;
+  (clean)
+    rm -rf target
+  ;;
+  (*)
+    echo "unknown command '$CMD'"
+    exit 1
+  ;;
+esac

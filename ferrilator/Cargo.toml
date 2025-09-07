@@ -1,0 +1,14 @@
+[package]
+name = "ferrilator"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A tool intended to simplify writing Verilator tests in Rust."
+homepage = "https://github.com/toshaf/ferrilator"
+repository = "https://github.com/toshaf/ferrilator"
+readme = "Readme.md"
+
+[dependencies]
+ferrilator_core.workspace = true
+ferrilator_macros.workspace = true
+syn.workspace = true
