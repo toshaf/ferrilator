@@ -31,7 +31,7 @@ impl Drop for Example {
     }
 }
 #[link(name = "Vex_module")]
-extern "C" {
+unsafe extern "C" {
     fn ex_module_new() -> *mut ();
     fn ex_module_del(dut: *mut ());
     fn ex_module_eval(dut: *mut ());

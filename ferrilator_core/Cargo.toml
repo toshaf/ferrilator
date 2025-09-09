@@ -1,7 +1,7 @@
 [package]
 name = "ferrilator_core"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Supporting code for the ferrilator crate, not intended to be consumed directly."
 homepage = "https://github.com/toshaf/ferrilator"

@@ -109,7 +109,7 @@ pub fn ferrilate_attribute(attr: TokenStream, item: TokenStream) -> err::Result<
         }
 
         #[link(name = #link_name)]
-        extern "C" {
+        unsafe extern "C" {
             fn #mod_new() -> *mut ();
             fn #mod_del(dut: *mut ());
             fn #mod_eval(dut: *mut ());
