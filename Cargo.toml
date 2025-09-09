@@ -7,9 +7,9 @@ members = [
 , "ferrilator_test"]
 
 [workspace.dependencies]
-ferrilator = { path = "ferrilator", version = "0.1.0" }
-ferrilator_core = { path = "ferrilator_core", version = "0.1.0" }
-ferrilator_macros = { path = "ferrilator_macros", version = "0.1.0" }
+ferrilator = { path = "ferrilator", version = "0.2.0" }
+ferrilator_core = { path = "ferrilator_core", version = "0.2.0" }
+ferrilator_macros = { path = "ferrilator_macros", version = "0.2.0" }
 proc-macro2 = { version = "1.0.101" }
 quote = { version = "1.0.40" }
 syn = { version = "2.0.106", features = ["full", "extra-traits"] }
