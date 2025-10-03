@@ -34,7 +34,7 @@ pub fn build(name: &str, rust_file: &str, verilog_files: &[&str]) -> err::Result
     let result = std::process::Command::new("verilator")
         .arg("--cc")
         .arg("--build")
-        .args(["--top", &module_name])
+        .args(["--top-module", &module_name])
         .args(["--Mdir", &verilated_dir])
         .args(verilog_files)
         .arg(&binding_file)
