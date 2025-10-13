@@ -15,9 +15,27 @@ impl std::fmt::Display for Error {
     }
 }
 
-pub fn input<T>(msg: impl Into<String>) -> Result<T> {
-    Err(Error::Input(msg.into()))
+#[macro_export]
+macro_rules! io {
+    ($fmt:literal) => {
+        Err(err::Error::Io(format!($fmt)))
+    };
+    ($fmt:literal, $($val:expr),*) => {
+        Err(err::Error::Io(format!($fmt, $($val),*)))
+    };
 }
+pub use io;
+
+#[macro_export]
+macro_rules! input {
+    ($fmt:literal) => {
+        Err(err::Error::Input(format!($fmt)))
+    };
+    ($fmt:literal, $($val:expr),*) => {
+        Err(err::Error::Input(format!($fmt, $($val),*)))
+    };
+}
+pub use input;
 
 impl From<syn::Error> for Error {
     fn from(e: syn::Error) -> Error {

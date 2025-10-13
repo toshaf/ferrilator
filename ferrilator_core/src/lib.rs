@@ -144,7 +144,7 @@ impl DataType {
             "i16" => DataType::I16,
             "i32" => DataType::I32,
             "i64" => DataType::I64,
-            other => return err::input(format!("cannot convert '{other}' to DataType")),
+            other => return err::input!("cannot convert '{other}' to DataType"),
         })
     }
 
@@ -243,13 +243,13 @@ impl Module {
         let mut attr = attr.into_iter();
         let name = match attr.next() {
             Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(other) => return err::input(format!("expected module name, found {other}")),
-            None => return err::input("expected module name, found nothing"),
+            Some(other) => return err::input!("expected module name, found {other}"),
+            None => return err::input!("expected module name, found nothing"),
         };
 
         match attr.next() {
             None => {}
-            Some(token) => return err::input(format!("unexpected attr value: {token}")),
+            Some(token) => return err::input!("unexpected attr value: {token}"),
         }
 
         Self::from_struct(name, parse2(item)?)
@@ -260,11 +260,11 @@ impl Module {
         let mut ports = vec![];
         for field in &defn.fields {
             if field.vis != Visibility::Inherited {
-                return err::input("fields must be private");
+                return err::input!("fields must be private");
             }
             let name = match &field.ident {
                 Some(ident) => ident.to_string(),
-                None => return err::input("fields must be named"),
+                None => return err::input!("fields must be named"),
             };
 
             let ty = as_tokens(&field.ty);
@@ -280,9 +280,9 @@ impl Module {
                             "clock" => {
                                 match &clock {
                                     Some((previous, _)) => {
-                                        return err::input(format!(
+                                        return err::input!(
                                             "fields {previous} and {name} cannot both be declared clock"
-                                        ));
+                                        );
                                     }
                                     None => {}
                                 }

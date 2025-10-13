@@ -14,7 +14,7 @@ use std::io::Write;
 pub fn build(name: &str, rust_file: &str, verilog_files: &[&str]) -> err::Result<()> {
     for fname in verilog_files {
         if !std::fs::exists(fname)? {
-            return err::input(format!("file {fname} does not exist"));
+            return err::input!("file {fname} does not exist");
         }
     }
 
@@ -77,7 +77,7 @@ fn load_struct(name: &str, rust_file: &str) -> err::Result<syn::ItemStruct> {
         }
     }
 
-    err::input(format!("failed to find struct defn for {name}"))
+    err::input!("failed to find struct defn for {name}")
 }
 
 fn read_module_name(item: &syn::ItemStruct) -> err::Result<String> {
@@ -95,10 +95,10 @@ fn read_module_name(item: &syn::ItemStruct) -> err::Result<String> {
             syn::Meta::NameValue(_) => {}
         }
     }
-    err::input(format!(
+    err::input!(
         "struct {} has no 'ferrilate' attribute",
         item.ident.to_string()
-    ))
+    )
 }
 
 fn write_binding_file(module_name: &str, fname: &str, module: &Module) -> err::Result<()> {
