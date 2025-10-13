@@ -11,6 +11,8 @@ use std::io::Write;
 /// top level of `rust_file`. Include any `verilog_files` required to build
 /// the module specified in the `ferrilate` attribute applied to `name`.
 /// All file paths are relative to the crate root.
+/// Verilator is assumed to be installed at `/usr/share/verilator` but this
+/// can be overriden by setting VERILATOR_ROOT to the install location.
 pub fn build(name: &str, rust_file: &str, verilog_files: &[&str]) -> err::Result<()> {
     for fname in verilog_files {
         if !std::fs::exists(fname)? {
@@ -24,30 +26,72 @@ pub fn build(name: &str, rust_file: &str, verilog_files: &[&str]) -> err::Result
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let verilated_dir = format!("{out_dir}/{module_name}_verilated");
-    let binding_file = format!("{module_name}_binding.cc");
-    write_binding_file(
-        &module_name,
-        &format!("{verilated_dir}/{binding_file}"),
-        &module,
-    )?;
+    let binding_src = format!("{verilated_dir}/{module_name}_binding.cc");
+    write_binding_file(&module_name, &binding_src, &module)?;
 
-    let result = std::process::Command::new("verilator")
-        .arg("--cc")
-        .arg("--build")
-        .args(["--top-module", &module_name])
-        .args(["--Mdir", &verilated_dir])
-        .args(verilog_files)
-        .arg(&binding_file)
-        .output()
-        .unwrap();
+    check_process_output(
+        "verilator",
+        std::process::Command::new("verilator")
+            .arg("--cc")
+            .arg("--build")
+            .args(["--top-module", &module_name])
+            .args(["--Mdir", &verilated_dir])
+            .args(verilog_files)
+            .arg(&binding_src)
+            .output()
+            .unwrap(),
+    );
 
-    if !result.status.success() {
-        println!("verilator failed");
-        println!("stdout:");
-        println!("{}", std::str::from_utf8(&result.stdout).unwrap());
-        println!("stderr:");
-        println!("{}", std::str::from_utf8(&result.stderr).unwrap());
-        panic!("cannot proceed");
+    let verilator_root = std::env::var("VERILATOR_ROOT").unwrap_or("/usr/share/verilator".into());
+    let verilator_include = format!("{verilator_root}/include");
+    let binding_obj = format!("{verilated_dir}/{module_name}_binding.o");
+    check_process_output(
+        "build binding file",
+        std::process::Command::new("g++")
+            .arg(&format!("-I{verilator_include}"))
+            .arg(&format!("-I{verilated_dir}"))
+            .args(&["-c", &binding_src])
+            .args(&["-o", &binding_obj])
+            .output()
+            .unwrap(),
+    );
+
+    let all_path = format!("{verilated_dir}/V{module_name}__ALL.a");
+    let module_path = format!("{verilated_dir}/libV{module_name}.a");
+    std::fs::copy(&all_path, &module_path).unwrap();
+    check_process_output(
+        "archive verilator runtime",
+        std::process::Command::new("ar")
+            .arg("rcs")
+            .arg(&module_path)
+            .arg(&format!("{verilated_dir}/{module_name}_binding.o"))
+            .arg(&binding_obj)
+            .output()
+            .unwrap(),
+    );
+
+    let verilated_src = format!("{verilator_include}/verilated.cpp");
+    let verilated_obj = format!("{verilated_dir}/verilated.o");
+    let runtime_path = format!("{verilated_dir}/libverilated.a");
+    if is_older(&runtime_path, &verilated_src) {
+        check_process_output(
+            "build verilator runtime",
+            std::process::Command::new("g++")
+                .arg(&format!("-I{verilator_include}"))
+                .args(&["-c", &verilated_src])
+                .args(&["-o", &verilated_obj])
+                .output()
+                .unwrap(),
+        );
+        check_process_output(
+            "archive verilator runtime",
+            std::process::Command::new("ar")
+                .arg("rcs")
+                .arg(&runtime_path)
+                .arg(&verilated_obj)
+                .output()
+                .unwrap(),
+        );
     }
 
     println!("cargo:rustc-link-search=native={verilated_dir}");
@@ -60,6 +104,29 @@ pub fn build(name: &str, rust_file: &str, verilog_files: &[&str]) -> err::Result
     }
 
     Ok(())
+}
+
+fn is_older(lhs: &str, rhs: &str) -> bool {
+    if let Ok(lhs) = std::fs::metadata(lhs)
+        && let Ok(rhs) = std::fs::metadata(rhs)
+        && let Ok(lhs) = lhs.modified()
+        && let Ok(rhs) = rhs.modified()
+    {
+        lhs < rhs
+    } else {
+        true
+    }
+}
+
+fn check_process_output(task: &str, out: std::process::Output) {
+    if !out.status.success() {
+        println!("{task} failed");
+        println!("--- stdout ---");
+        std::io::copy(&mut &out.stdout[..], &mut std::io::stdout()).unwrap();
+        println!("--- stderr ---");
+        std::io::copy(&mut &out.stderr[..], &mut std::io::stderr()).unwrap();
+        panic!("cannot proceed");
+    }
 }
 
 // TODO: module path?
