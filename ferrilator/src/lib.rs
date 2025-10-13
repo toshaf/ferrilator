@@ -2,8 +2,8 @@ pub mod attr {
     pub use ferrilator_macros::ferrilate;
 }
 
-use ferrilator_core::err;
 use ferrilator_core::Module;
+use ferrilator_core::err;
 use std::io::Read;
 use std::io::Write;
 

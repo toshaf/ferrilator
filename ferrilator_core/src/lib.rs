@@ -4,13 +4,13 @@ use proc_macro2::Ident;
 use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use proc_macro2::TokenTree;
-use quote::quote;
 use quote::ToTokens;
 use quote::TokenStreamExt;
-use syn::parse2;
+use quote::quote;
 use syn::ItemStruct;
 use syn::Meta;
 use syn::Visibility;
+use syn::parse2;
 
 pub fn ferrilate_attribute(attr: TokenStream, item: TokenStream) -> err::Result<TokenStream> {
     let module = Module::from_attribute(attr, item)?;
@@ -279,8 +279,12 @@ impl Module {
                             "output" => output = true,
                             "clock" => {
                                 match &clock {
-                                    Some((previous, _)) => return err::input(format!("fields {previous} and {name} cannot both be declared clock")),
-                                    None => {},
+                                    Some((previous, _)) => {
+                                        return err::input(format!(
+                                            "fields {previous} and {name} cannot both be declared clock"
+                                        ));
+                                    }
+                                    None => {}
                                 }
                                 clock = Some((name.clone(), data_type.clone()));
                             }
