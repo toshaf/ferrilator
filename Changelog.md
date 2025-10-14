@@ -1,5 +1,8 @@
 # Ferrilator change log
 
+## 0.4.0
+Handing missing archives for use with verilator 4.xxx
+
 ## 0.3.0
 Changed --top argument to --top-module
 
