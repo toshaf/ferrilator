@@ -1,5 +1,8 @@
 # Ferrilator change log
 
+## 0.5.0
+Added u128 support
+
 ## 0.4.0
 Handing missing archives for use with verilator 4.xxx
 
