@@ -11,3 +11,4 @@ RUN sh -c 'yes | unminimize'
 RUN apt install -y curl
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/install_rustup
 RUN sh /tmp/install_rustup -y
+RUN apt install -y less

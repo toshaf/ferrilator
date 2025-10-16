@@ -47,22 +47,39 @@ pub fn ferrilate_attribute(attr: TokenStream, item: TokenStream) -> err::Result<
     let mut cc_fns = vec![];
 
     for port in &module.ports {
-        let data_type = &port.data_type;
+        let data_type = port.data_type;
 
         if port.input {
             let ext_name = Ident::new(
                 &format!("{}_set_{}", module.name, port.name),
                 Span::call_site(),
             );
-            cc_fns.push(quote! {
-                fn #ext_name(dut: *mut(), value: #data_type);
-            });
             let fn_name = Ident::new(&format!("set_{}", port.name), Span::call_site());
-            rs_fns.push(quote! {
-                fn #fn_name(&mut self, value: #data_type) {
-                    unsafe { #ext_name(self.dut, value) };
-                }
-            });
+            if data_type == DataType::U128 {
+                cc_fns.push(quote! {
+                    fn #ext_name(dut: *mut(), blocks: &[u32; 4]);
+                });
+                rs_fns.push(quote! {
+                    fn #fn_name(&mut self, value: #data_type) {
+                        let arr = [
+                            (value & 0xffff_ffff) as u32,
+                            ((value >> 32) & 0xffff_ffff) as u32,
+                            ((value >> 64) & 0xffff_ffff) as u32,
+                            ((value >> 96) & 0xffff_ffff) as u32,
+                        ];
+                        unsafe { #ext_name(self.dut, &arr) };
+                    }
+                });
+            } else {
+                cc_fns.push(quote! {
+                    fn #ext_name(dut: *mut(), value: #data_type);
+                });
+                rs_fns.push(quote! {
+                    fn #fn_name(&mut self, value: #data_type) {
+                        unsafe { #ext_name(self.dut, value) };
+                    }
+                });
+            }
         }
 
         if port.output {
@@ -70,15 +87,31 @@ pub fn ferrilate_attribute(attr: TokenStream, item: TokenStream) -> err::Result<
                 &format!("{}_get_{}", module.name, port.name),
                 Span::call_site(),
             );
-            cc_fns.push(quote! {
-                fn #ext_name(dut: *mut()) -> #data_type;
-            });
             let fn_name = Ident::new(&format!("get_{}", port.name), Span::call_site());
-            rs_fns.push(quote! {
-                fn #fn_name(&self) -> #data_type {
-                    unsafe { #ext_name(self.dut) }
-                }
-            });
+            if data_type == DataType::U128 {
+                cc_fns.push(quote! {
+                    fn #ext_name(dut: *mut(), blocks: &mut [u32]);
+                });
+                rs_fns.push(quote! {
+                    fn #fn_name(&self) -> #data_type {
+                        let mut arr = [0u32; 4];
+                        unsafe { #ext_name(self.dut, &mut arr) };
+                        (arr[0] as u128)
+                        | ((arr[1] as u128) << 32)
+                        | ((arr[2] as u128) << 64)
+                        | ((arr[3] as u128) << 96)
+                    }
+                });
+            } else {
+                cc_fns.push(quote! {
+                    fn #ext_name(dut: *mut()) -> #data_type;
+                });
+                rs_fns.push(quote! {
+                    fn #fn_name(&self) -> #data_type {
+                        unsafe { #ext_name(self.dut) }
+                    }
+                });
+            }
         }
     }
 
@@ -119,7 +152,7 @@ pub fn ferrilate_attribute(attr: TokenStream, item: TokenStream) -> err::Result<
     })
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DataType {
     Bool,
     U8,
@@ -130,6 +163,7 @@ pub enum DataType {
     I16,
     I32,
     I64,
+    U128,
 }
 
 impl DataType {
@@ -144,21 +178,8 @@ impl DataType {
             "i16" => DataType::I16,
             "i32" => DataType::I32,
             "i64" => DataType::I64,
+            "u128" => DataType::U128,
             other => return err::input!("cannot convert '{other}' to DataType"),
-        })
-    }
-
-    pub fn as_c(&self) -> String {
-        String::from(match self {
-            DataType::Bool => "uint8_t",
-            DataType::U8 => "uint8_t",
-            DataType::U16 => "uint16_t",
-            DataType::U32 => "uint32_t",
-            DataType::U64 => "uint64_t",
-            DataType::I8 => "int8_t",
-            DataType::I16 => "int16_t",
-            DataType::I32 => "int32_t",
-            DataType::I64 => "int64_t",
         })
     }
 
@@ -173,6 +194,7 @@ impl DataType {
             DataType::I16 => ("1", "0"),
             DataType::I32 => ("1", "0"),
             DataType::I64 => ("1", "0"),
+            DataType::U128 => ("1", "0"),
         }
     }
 }
@@ -189,6 +211,7 @@ impl std::fmt::Display for DataType {
             DataType::I16 => write!(f, "i16"),
             DataType::I32 => write!(f, "i32"),
             DataType::I64 => write!(f, "i64"),
+            DataType::U128 => write!(f, "u128"),
         }
     }
 }
@@ -212,8 +235,8 @@ impl Port {
         &self.name
     }
 
-    pub fn data_type(&self) -> &DataType {
-        &self.data_type
+    pub fn data_type(&self) -> DataType {
+        self.data_type
     }
 
     pub fn input(&self) -> bool {

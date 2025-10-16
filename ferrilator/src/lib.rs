@@ -2,6 +2,7 @@ pub mod attr {
     pub use ferrilator_macros::ferrilate;
 }
 
+use ferrilator_core::DataType;
 use ferrilator_core::Module;
 use ferrilator_core::err;
 use std::io::Read;
@@ -191,28 +192,69 @@ fn write_binding_file(module_name: &str, fname: &str, module: &Module) -> err::R
 
     for port in module.ports() {
         let port_name = &port.name();
-        let type_name = port.data_type().as_c();
 
-        if port.input() {
-            writeln!(
-                file,
-                "void {module_name}_set_{port_name}(V{module_name}* dut, {type_name} value) {{"
-            )?;
-            writeln!(file, "  dut->{port_name} = value;")?;
-            writeln!(file, "}}")?;
-        }
+        if port.data_type() == DataType::U128 {
+            if port.input() {
+                writeln!(
+                    file,
+                    "void {module_name}_set_{port_name}(V{module_name}* dut, const uint32_t (&arr)[4]) {{"
+                )?;
+                writeln!(file, "  dut->{port_name}.at(0) = arr[0];")?;
+                writeln!(file, "  dut->{port_name}.at(1) = arr[1];")?;
+                writeln!(file, "  dut->{port_name}.at(2) = arr[2];")?;
+                writeln!(file, "  dut->{port_name}.at(3) = arr[3];")?;
+                writeln!(file, "}}")?;
+            }
 
-        if port.output() {
-            writeln!(
-                file,
-                "{type_name} {module_name}_get_{port_name}(V{module_name}* dut) {{"
-            )?;
-            writeln!(file, "  return dut->{port_name};")?;
-            writeln!(file, "}}")?;
+            if port.output() {
+                writeln!(
+                    file,
+                    "void {module_name}_get_{port_name}(V{module_name}* dut, uint32_t (&arr)[4]) {{"
+                )?;
+                writeln!(file, "  arr[0] = dut->{port_name}.at(0);")?;
+                writeln!(file, "  arr[1] = dut->{port_name}.at(1);")?;
+                writeln!(file, "  arr[2] = dut->{port_name}.at(2);")?;
+                writeln!(file, "  arr[3] = dut->{port_name}.at(3);")?;
+                writeln!(file, "}}")?;
+            }
+        } else {
+            let type_name = c_type_name(port.data_type());
+            if port.input() {
+                writeln!(
+                    file,
+                    "void {module_name}_set_{port_name}(V{module_name}* dut, {type_name} value) {{"
+                )?;
+                writeln!(file, "  dut->{port_name} = value;")?;
+                writeln!(file, "}}")?;
+            }
+
+            if port.output() {
+                writeln!(
+                    file,
+                    "{type_name} {module_name}_get_{port_name}(V{module_name}* dut) {{"
+                )?;
+                writeln!(file, "  return dut->{port_name};")?;
+                writeln!(file, "}}")?;
+            }
         }
     }
 
     writeln!(file, "}}")?;
 
     Ok(())
+}
+
+fn c_type_name(data_type: DataType) -> &'static str {
+    match data_type {
+        DataType::Bool => "uint8_t",
+        DataType::U8 => "uint8_t",
+        DataType::U16 => "uint16_t",
+        DataType::U32 => "uint32_t",
+        DataType::U64 => "uint64_t",
+        DataType::I8 => "int8_t",
+        DataType::I16 => "int16_t",
+        DataType::I32 => "int32_t",
+        DataType::I64 => "int64_t",
+        DataType::U128 => panic!("cannot directly represent u128 in C"),
+    }
 }
